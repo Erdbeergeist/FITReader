@@ -1,8 +1,10 @@
 mod file_structure;
 
 use file_structure::{FitFile, FitHeader};
+use rfd::FileDialog;
 use std::fs::File;
 use std::io::{self, Read};
+use std::process;
 
 fn read_file_to_vector(file_path: &str) -> io::Result<Vec<u8>> {
     let mut file = File::open(file_path)?;
@@ -26,15 +28,19 @@ fn dump_file_content(file_data: &[u8], start: Option<usize>, end: Option<usize>)
 }
 
 fn main() -> io::Result<()> {
-    let file_path = "Evening_Ride.fit";
+    //let file_path = "Evening_Ride.fit";
 
-    //let data = read_file_to_vector(file_path)?;
-
-    //println!("File read successfully, {} bytes read.", data.len());
-
-    //println!("Dumping the Header:");
-
-    //dump_file_content(&data, Some(0), Some(100));
+    let file_path = match FileDialog::new()
+        .set_title("Select a .fit File")
+        .set_directory(".")
+        .pick_file()
+    {
+        Some(p) => p,
+        None => {
+            println!("No file selected");
+            process::exit(1);
+        }
+    };
 
     let mut file = File::open(file_path)?;
 
