@@ -41,6 +41,7 @@ fn main() -> io::Result<()> {
     let header = FitHeader::from_reader(&mut file)?;
 
     println!("{:?}", header);
+    println!("{:02x}", header.data_type);
 
     header.pretty_print();
     Ok(())

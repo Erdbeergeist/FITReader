@@ -23,19 +23,52 @@ pub struct FitFile {
 }
 
 impl FitHeader {
-    pub fn from_reader<R: Read>(reader: &mut R) -> io::Result<FitHeader> {
+    pub fn new(
+        header_size: u8,
+        protocol_version: u8,
+        profile_version_lsb: u8,
+        profile_version_msb: u8,
+        data_size_lsb: u8,
+        data_size: u16,
+        data_size_msb: u8,
+        data_type: u32,
+        crc_lsb: u8,
+        crc_msb: u8,
+    ) -> Result<FitHeader, io::Error> {
+        if data_type != 0x5449462e {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Invalid data_type, is this a .fit file?",
+            ));
+        }
+
         Ok(FitHeader {
-            header_size: reader.read_u8()?,
-            protocol_version: reader.read_u8()?,
-            profile_version_lsb: reader.read_u8()?,
-            profile_version_msb: reader.read_u8()?,
-            data_size_lsb: reader.read_u8()?,
-            data_size: reader.read_u16::<LittleEndian>()?,
-            data_size_msb: reader.read_u8()?,
-            data_type: reader.read_u32::<LittleEndian>()?,
-            crc_lsb: reader.read_u8()?,
-            crc_msb: reader.read_u8()?,
+            header_size,
+            protocol_version,
+            profile_version_lsb,
+            profile_version_msb,
+            data_size_lsb,
+            data_size,
+            data_size_msb,
+            data_type,
+            crc_lsb,
+            crc_msb,
         })
+    }
+
+    pub fn from_reader<R: Read>(reader: &mut R) -> Result<FitHeader, io::Error> {
+        Ok(FitHeader::new(
+            reader.read_u8()?,
+            reader.read_u8()?,
+            reader.read_u8()?,
+            reader.read_u8()?,
+            reader.read_u8()?,
+            reader.read_u16::<LittleEndian>()?,
+            reader.read_u8()?,
+            reader.read_u32::<LittleEndian>()?,
+            reader.read_u8()?,
+            reader.read_u8()?,
+        )?)
     }
 
     pub fn pretty_print(&self) {
