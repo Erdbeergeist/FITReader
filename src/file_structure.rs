@@ -127,14 +127,35 @@ impl RecordHeader {
 }
 
 #[derive(Debug)]
-pub struct RecordContent {
-    pub dummy: u8,
+pub struct DefinitionMessage {
+    raw_record_header: u8,
+    record_header: Option<RecordHeader>,
+    reserved: u8,
+    architecture: u8,
+    global_message_number: u16,
+    num_fields: u8,
+    //Should probably be parsed as Vec<[u8;3]> as each component contains different info
+    field_definitions: Option<Vec<u32>>,
+    //If the RecordHeader is of NormalHeader Type and has the developer bit(message_type_spec) set
+    //the DefinitionMessage also contains developer field definitions, the number of which need to
+    //be parsed as the first byte after the field_definitions. Normally we expect num_dev_fields to
+    //be set to zero
+    num_dev_fields: u8,
+    //Should probably be parsed as Vec<[u8;3]> as each component contains different info
+    dev_field_definitions: Option<Vec<u32>>,
 }
 
 #[derive(Debug)]
-pub struct DataRecord {
-    pub header: RecordHeader,
-    pub content: RecordContent,
+pub struct DataMessage {
+    raw_record_header: u8,
+    record_header: Option<RecordHeader>,
+    data: Option<Vec<u8>>,
+}
+
+#[derive(Debug)]
+pub enum FitRecord {
+    DefinitionMessage(DefinitionMessage),
+    DataMessage(DataMessage),
 }
 
 #[derive(Debug)]
