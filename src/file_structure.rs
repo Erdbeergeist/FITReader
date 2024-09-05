@@ -16,12 +16,6 @@ pub struct FitHeader {
     pub crc_msb: u8,
 }
 
-#[derive(Debug)]
-pub struct FitFile {
-    pub header: FitHeader,
-    pub data: Vec<u8>,
-}
-
 impl FitHeader {
     pub fn new(
         header_size: u8,
@@ -82,6 +76,51 @@ impl FitHeader {
     }
 }
 
+#[derive(Debug)]
+pub struct RecordHeader {
+    raw: u8,
+    local_message_type: u8,
+    reserved: u8,
+    message_type_spec: u8,
+    message_type: u8,
+    normal_header: u8,
+}
+
+impl RecordHeader {
+    pub fn new(raw: u8) -> RecordHeader {
+        let local_message_type = raw & 0b0000_1111;
+        let reserved = (raw >> 4) & 0b0000_0001;
+        let message_type_spec = (raw >> 5) & 0b0000_0001;
+        let message_type = (raw >> 6) & 0b0000_0001;
+        let normal_header = (raw >> 7) & 0b0000_0001;
+
+        RecordHeader {
+            raw,
+            local_message_type,
+            reserved,
+            message_type_spec,
+            message_type,
+            normal_header,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RecordContent {
+    pub dummy: u8,
+}
+
+#[derive(Debug)]
+pub struct DataRecord {
+    pub header: RecordHeader,
+    pub content: RecordContent,
+}
+
+#[derive(Debug)]
+pub struct FitFile {
+    pub header: FitHeader,
+    pub data: Vec<u8>,
+}
 impl FitFile {
     pub fn from_file(file_path: &str) -> io::Result<FitFile> {
         let mut file = File::open(file_path)?;

@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::process;
 
+use crate::file_structure::RecordHeader;
+
 fn read_file_to_vector(file_path: &str) -> io::Result<Vec<u8>> {
     let mut file = File::open(file_path)?;
 
@@ -50,5 +52,9 @@ fn main() -> io::Result<()> {
     println!("{:02x}", header.data_type);
 
     header.pretty_print();
+
+    let rh = RecordHeader::new(0b0100_0000);
+    println!("{:?}", rh);
+
     Ok(())
 }
