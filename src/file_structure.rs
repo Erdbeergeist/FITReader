@@ -77,30 +77,51 @@ impl FitHeader {
 }
 
 #[derive(Debug)]
-pub struct RecordHeader {
+pub struct NormalHeader {
     raw: u8,
     local_message_type: u8,
     reserved: u8,
     message_type_spec: u8,
     message_type: u8,
-    normal_header: u8,
+    header_type: u8,
+}
+
+#[derive(Debug)]
+pub struct CompressedTimestampHeader {
+    raw: u8,
+    time_offset: u8,
+    local_message_type: u8,
+    header_type: u8,
+}
+
+#[derive(Debug)]
+pub enum RecordHeader {
+    NormalHeader(NormalHeader),
+    CompressedTimestampHeader(CompressedTimestampHeader),
 }
 
 impl RecordHeader {
-    pub fn new(raw: u8) -> RecordHeader {
-        let local_message_type = raw & 0b0000_1111;
-        let reserved = (raw >> 4) & 0b0000_0001;
-        let message_type_spec = (raw >> 5) & 0b0000_0001;
-        let message_type = (raw >> 6) & 0b0000_0001;
-        let normal_header = (raw >> 7) & 0b0000_0001;
+    pub fn new(raw: u8) -> Result<RecordHeader, &'static str> {
+        let header_type = (raw >> 7) & 0b0000_0001;
 
-        RecordHeader {
-            raw,
-            local_message_type,
-            reserved,
-            message_type_spec,
-            message_type,
-            normal_header,
+        match header_type {
+            0 => Ok(RecordHeader::NormalHeader(NormalHeader {
+                raw: raw,
+                local_message_type: raw & 0b0000_1111,
+                reserved: (raw >> 4) & 0b0000_0001,
+                message_type_spec: (raw >> 5) & 0b0000_0001,
+                message_type: (raw >> 6) & 0b0000_0001,
+                header_type: header_type,
+            })),
+            1 => Ok(RecordHeader::CompressedTimestampHeader(
+                CompressedTimestampHeader {
+                    raw: raw,
+                    time_offset: raw & 0b0001_1111,
+                    local_message_type: (raw >> 5) & 0b0000_0011,
+                    header_type: header_type,
+                },
+            )),
+            _ => Err("Invalid header type"),
         }
     }
 }

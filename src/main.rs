@@ -53,8 +53,11 @@ fn main() -> io::Result<()> {
 
     header.pretty_print();
 
-    let rh = RecordHeader::new(0b0100_0000);
-    println!("{:?}", rh);
+    let nh = RecordHeader::new(0b0100_0000);
+    println!("{:?}", nh);
+
+    let th = RecordHeader::new(0b1100_0010);
+    println!("{:?}", th);
 
     Ok(())
 }
