@@ -161,7 +161,7 @@ pub enum FitRecord {
 }
 
 impl FitRecord {
-    pub fn new(raw: u8) -> Result<FitRecord, &'static str> {
+    pub fn new(raw: &u8) -> Result<FitRecord, &'static str> {
         let header_type = (raw >> 7) & 0b0000_0001;
         let message_type = (raw >> 6) & 0b0000_0001;
         let message_type_spec = (raw >> 5) & 0b0000_0001;
@@ -171,8 +171,8 @@ impl FitRecord {
                 match message_type {
                     1 => {
                         Ok(FitRecord::DefinitionMessage(DefinitionMessage {
-                            raw_record_header: raw,
-                            record_header: RecordHeader::new(raw)
+                            raw_record_header: *raw,
+                            record_header: RecordHeader::new(*raw)
                                 .expect("Could not create RecordHeader"),
                             reserved: None,
                             architecture: None,
@@ -186,8 +186,8 @@ impl FitRecord {
                         }))
                     }
                     0 => Ok(FitRecord::DataMessage(DataMessage {
-                        raw_record_header: raw,
-                        record_header: RecordHeader::new(raw)
+                        raw_record_header: *raw,
+                        record_header: RecordHeader::new(*raw)
                             .expect("Could not create RecordHeader"),
                         data: None,
                     })),
@@ -195,8 +195,8 @@ impl FitRecord {
                 }
             }
             1 => Ok(FitRecord::DataMessage(DataMessage {
-                raw_record_header: raw,
-                record_header: RecordHeader::new(raw).expect("Could not create RecordHeader"),
+                raw_record_header: *raw,
+                record_header: RecordHeader::new(*raw).expect("Could not create RecordHeader"),
                 data: None,
             })),
             _ => Err("Parsing of header type failed"),
@@ -207,18 +207,24 @@ impl FitRecord {
 #[derive(Debug)]
 pub struct FitFile {
     pub header: FitHeader,
-    pub data: Vec<u8>,
+    pub data: Vec<FitRecord>,
 }
 impl FitFile {
-    pub fn from_file(file_path: &str) -> io::Result<FitFile> {
+    pub fn new(file_path: &str) -> io::Result<FitFile> {
         let mut file = File::open(file_path)?;
-        let mut header_bytes = [0, 14];
+        let header = FitHeader::from_reader(&mut file)?;
+        println!("{:?}", header);
+        file.seek(SeekFrom::Start(14))?;
+        let mut buffer = vec![0u8; 1];
+        file.read_exact(&mut buffer)?;
 
-        file.read_exact(&mut header_bytes)?;
-        let mut reader = &header_bytes[..];
-        let header = FitHeader::from_reader(&mut reader)?;
-
-        let mut data = vec![0, 1];
+        let mut data: Vec<FitRecord> = Vec::new();
+        if let Ok(fr) = FitRecord::new(&buffer[0]) {
+            println!("{:?}", fr);
+            data.push(fr);
+        } else {
+            println!("Failed to craete FitRecord")
+        }
 
         Ok(FitFile { header, data })
     }

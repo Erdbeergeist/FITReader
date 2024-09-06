@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::process;
 
-use crate::file_structure::RecordHeader;
+use crate::file_structure::{FitRecord, RecordHeader};
 
 fn read_file_to_vector(file_path: &str) -> io::Result<Vec<u8>> {
     let mut file = File::open(file_path)?;
@@ -44,20 +44,28 @@ fn main() -> io::Result<()> {
         }
     };
 
-    let mut file = File::open(file_path)?;
+    let mut file = File::open(&file_path)?;
 
     let header = FitHeader::from_reader(&mut file)?;
 
     println!("{:?}", header);
     println!("{:02x}", header.data_type);
 
-    header.pretty_print();
+    //header.pretty_print();
 
-    let nh = RecordHeader::new(0b0100_0000);
-    println!("{:?}", nh);
+    //let nh = RecordHeader::new(0b0100_0000);
+    //println!("{:?}", nh);
 
-    let th = RecordHeader::new(0b1100_0010);
-    println!("{:?}", th);
+    //let th = RecordHeader::new(0b1100_0010);
+    //println!("{:?}", th);
+
+    //let fr = FitRecord::new(&0b0100_0000);
+    //println!("{:?}", fr);
+
+    //let frd = FitRecord::new(&0b1100_0010);
+    //println!("{:?}", frd);
+    let file_path_str = file_path.to_string_lossy();
+    let mut fit_file = FitFile::new(&file_path_str)?;
 
     Ok(())
 }
