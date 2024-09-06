@@ -82,6 +82,7 @@ pub struct NormalHeader {
     local_message_type: u8,
     reserved: u8,
     message_type_spec: u8,
+    // 1 -> DefinitionMessage 0 -> DataMessage
     message_type: u8,
     header_type: u8,
 }
@@ -129,26 +130,27 @@ impl RecordHeader {
 #[derive(Debug)]
 pub struct DefinitionMessage {
     raw_record_header: u8,
-    record_header: Option<RecordHeader>,
-    reserved: u8,
-    architecture: u8,
-    global_message_number: u16,
-    num_fields: u8,
+    record_header: RecordHeader,
+    reserved: Option<u8>,
+    architecture: Option<u8>,
+    global_message_number: Option<u16>,
+    num_fields: Option<u8>,
+    timestamp: Option<u32>,
     //Should probably be parsed as Vec<[u8;3]> as each component contains different info
-    field_definitions: Option<Vec<u32>>,
+    field_definitions: Option<Vec<[u8; 3]>>,
     //If the RecordHeader is of NormalHeader Type and has the developer bit(message_type_spec) set
     //the DefinitionMessage also contains developer field definitions, the number of which need to
     //be parsed as the first byte after the field_definitions. Normally we expect num_dev_fields to
     //be set to zero
     num_dev_fields: u8,
     //Should probably be parsed as Vec<[u8;3]> as each component contains different info
-    dev_field_definitions: Option<Vec<u32>>,
+    dev_field_definitions: Option<Vec<[u8; 3]>>,
 }
 
 #[derive(Debug)]
 pub struct DataMessage {
     raw_record_header: u8,
-    record_header: Option<RecordHeader>,
+    record_header: RecordHeader,
     data: Option<Vec<u8>>,
 }
 
@@ -156,6 +158,50 @@ pub struct DataMessage {
 pub enum FitRecord {
     DefinitionMessage(DefinitionMessage),
     DataMessage(DataMessage),
+}
+
+impl FitRecord {
+    pub fn new(raw: u8) -> Result<FitRecord, &'static str> {
+        let header_type = (raw >> 7) & 0b0000_0001;
+        let message_type = (raw >> 6) & 0b0000_0001;
+        let message_type_spec = (raw >> 5) & 0b0000_0001;
+
+        match header_type {
+            0 => {
+                match message_type {
+                    1 => {
+                        Ok(FitRecord::DefinitionMessage(DefinitionMessage {
+                            raw_record_header: raw,
+                            record_header: RecordHeader::new(raw)
+                                .expect("Could not create RecordHeader"),
+                            reserved: None,
+                            architecture: None,
+                            global_message_number: None,
+                            num_fields: None,
+                            timestamp: None,
+                            field_definitions: None,
+                            //Sets to zero if no dev flag, otherwise one
+                            num_dev_fields: message_type_spec,
+                            dev_field_definitions: None,
+                        }))
+                    }
+                    0 => Ok(FitRecord::DataMessage(DataMessage {
+                        raw_record_header: raw,
+                        record_header: RecordHeader::new(raw)
+                            .expect("Could not create RecordHeader"),
+                        data: None,
+                    })),
+                    _ => Err("Parsing of message type failed"),
+                }
+            }
+            1 => Ok(FitRecord::DataMessage(DataMessage {
+                raw_record_header: raw,
+                record_header: RecordHeader::new(raw).expect("Could not create RecordHeader"),
+                data: None,
+            })),
+            _ => Err("Parsing of header type failed"),
+        }
+    }
 }
 
 #[derive(Debug)]
